@@ -28,3 +28,4 @@ React.js · Axios · HTML/CSS
 
 **Utilities**  
 MongoDB Compass (for data + index validation)
+dotenv for environment variable management
