@@ -400,7 +400,7 @@ This confirms that the query uses the `{ category: 1, tenant: 1 }` index rather 
 
 ### Index Usage Screenshot
 
-![MongoDB Explain Output](./assets/explain-result-1.png)
+![MongoDB Explain Output](./assets/explain_result_compound_index_1.png)
 
 **Execution Stats**
 
@@ -415,7 +415,7 @@ Indicates a fast, index-optimized query that only examined relevant documents.
 
 ### Screenshot
 
-![MongoDB Explain Output](./assets/explain-result-2.png)
+![MongoDB Explain Output](./assets/explain_result_compound_index_2.png)
 
 ### Optimization Insights
 
@@ -479,7 +479,7 @@ This confirms that MongoDB is using text index (on `name` and `description`) to 
 
 ### Index Usage Screenshot
 
-![MongoDB Explain Output](./assets/explain-result-text-index-1.png)
+![MongoDB Explain Output](./assets/explain_result_text_index_1.png)
 
 **Execution Stats**
 
@@ -495,7 +495,7 @@ The query is fully optimized — MongoDB used the `TEXT_MATCH` stage with the co
 
 ### Screenshot
 
-![MongoDB Explain Output](./assets/explain-result-text-index-2.png)
+![MongoDB Explain Output](./assets/explain_result_text_index_2.png)
 
 ### Optimization Insights
 
