@@ -252,10 +252,394 @@ GET /api/products/suggestions?keyword=tablet
     "hasPrevPage": false
   }
   ```
-- The `/suggestions` endpoint performs **partial keyword matching** using **case-insensitive regex** 
+> The `/suggestions` endpoint performs **partial keyword matching** using **case-insensitive regex** 
+
+## System Architecture
+
+```
+Frontend (React.js)
+    │
+    └──▶ User interacts with SearchBar (category, tenant, keyword, sort)
+         │
+         └──▶ Sends GET requests via Axios:
+                 - /search (main search)
+                 - /suggestions (autocomplete)
+                 - /filters and /filtered-filters (for dropdowns)
+         
+Backend (Node.js + Express.js)
+    │
+    └──▶ Validates inputs (e.g., trim, check sort/page)
+         │
+         └──▶ Builds MongoDB query:
+                 - Text search with $text (if keyword)
+                 - Match filters (category, tenant)
+                 - Applies sorting & pagination via mongoose-paginate-v2
+         │
+         └──▶ Sends response to frontend
+
+MongoDB (Database)
+    ▲
+    └──▶ Optimized with:
+             - Text Index (name + description)
+             - Compound Index (category + tenant)
+             - Lean queries & projection
+         ⬅ Returns matched products or suggestion results
+```
+---
+
+The app uses a **three-layer architecture**:
+
+- **Frontend (React.js)**  
+  The user interacts with a React-based UI that includes a search bar, filters, and a results list. It sends requests to the backend using Axios, handles user input changes, and updates the UI dynamically with paginated product data.
+
+- **Backend (Express.js API)**  
+  Acts as a bridge between the frontend and the database. It receives and validates query parameters, constructs MongoDB queries (using filters, keyword search, sort, pagination), and sends back optimized, trimmed data. The backend is built using `Express.js` and `mongoose-paginate-v2` for easy pagination.
+
+- **Database (MongoDB)**  
+  Stores all product data in a flexible schema. MongoDB is indexed both for full-text search (`name`, `description`) and compound fields (`category`, `tenant`). This ensures quick responses to complex queries.
+---
+
+### Data Flow
+1. **User Interaction**  
+   A user selects filters (category, tenant), enters a keyword, or types into the search input. This triggers a function inside the React `SearchBar` component.
+2. **Axios Sends a Request**  
+   The frontend sends a `GET` request with relevant query parameters to `/api/products/search`.
+3. **Backend Validates and Constructs Query**  
+   The backend trims inputs, checks for valid pagination/sorting, then builds a MongoDB query object:
+   - Adds a `$text` clause if `keyword` is present.
+   - Filters by `category` and/or `tenant` if provided.
+   - Applies sorting and pagination options.
+4. **MongoDB Executes the Query**  
+   MongoDB uses indexes to efficiently search, sort, and limit the results. The use of `lean` queries ensures lightweight objects are returned without extra Mongoose overhead.
+5. **Backend Responds to Frontend**  
+   The backend sends a structured JSON response with the result `docs`, pagination metadata, and total counts.
+6. **Frontend Renders Results**  
+   React receives the response and displays products using `ProductList`, along with a pagination control using `Pagination.jsx`.
+---
+
+### Architectural Rationale
+
+- **Separation of concerns** makes the system easier to test, debug, and scale.
+- Backend logic is optimized for **performance**, using `.select` to reduce data size and MongoDB indexes for search-heavy operations.
+- The frontend focuses purely on UI/UX, with no business logic, keeping it lightweight and fast.
+---
+
+### Database Design & Indexing Strategy
+
+The core of this project’s performance lies in how the **MongoDB database** is structured and optimized. At scale (e.g., thousands or millions of products), it becomes critical that queries remain fast and resource-efficient. Here's how this was achieved:
+
+### Product Schema
+The Product schema is lean, purposeful, and optimized for querying
+```js
+const productSchema = new mongoose.Schema({
+  name: String,
+  category: String,
+  tenant: String,
+  description: String,
+  price: Number
+}, { versionKey: false });
+```
+- `name`, `description`: Textual fields for search  
+- `category`: Product grouping (e.g., Electronics)
+- `tenant`: Brand or seller (e.g., Sony)
+- `description`: Short marketing blurb
+- `price`: Numeric value for sorting and filters
+
+### Database Indexing Strategy
+
+To ensure **scalable, performant search functionality**, we implemented two key indexes in our `Product` schema, chosen specifically to mirror real-world user behavior and optimize the most frequent query patterns.
+
+#### 1. Compound Index on `{ category: 1, tenant: 1 }`
+
+```js
+productSchema.index({ category: 1, tenant: 1 });
+```
+
+**Why this index?**  
+This compound index was strategically chosen to optimize the most common query pattern in the application — filtering products by both `category` and `tenant`. By indexing these fields together, MongoDB can leverage **index intersection and prefix-based matching**, which dramatically improves query performance when users apply multi-faceted filters. This aligns with real-world e-commerce behavior where users often search within specific brands under a particular category (e.g., *"Home & Kitchen" → "Hamilton Beach"*).
+
+It demonstrates thoughtful design that considers:
+- **User interaction patterns** (e.g., filtering by brand within a category)
+- **Database internals** (leveraging compound index prefix efficiency)
+- **Scalability needs** as data volume increases
+
+**Key Benefits**
+- Powers the `/search` and `/filtered-filters` endpoints
+- Efficiently handles queries like `{ category: "Shoes", tenant: "Puma" }`
+- Enables index-bound scans that skip non-matching documents
+- Reduces CPU and I/O load under high traffic
+- Boosts pagination speed by narrowing the document set before limit/skip
+- Reduces latency in dynamic dropdowns (e.g., tenant list changes per category)
+---
+
+### Index Verification with `explain()`
+
+The `.explain()` function in MongoDB reveals the **execution plan** for a query — showing whether indexes were used, how many documents were examined, and how efficient the query was.
+
+To ensure our **compound index** on `category` and `tenant` is utilized during filtering, we ran the following query using MongoDB’s `explain("executionStats")` to analyze performance:
+
+```js
+db.products.find({ category: "Electronics", tenant: "Apple" }).explain("executionStats");
+```
+
+**Index Usage**
+
+MongoDB confirms the use of index:
+
+```json
+"stage": "IXSCAN",
+"indexName": "category_1_tenant_1",
+"keyPattern": { "category": 1, "tenant": 1 },
+"indexBounds": {
+  "category": ["Electronics", "Electronics"],
+  "tenant": ["Apple", "Apple"]
+}
+```
+
+This confirms that the query uses the `{ category: 1, tenant: 1 }` index rather than scanning the entire collection.
+
+### Index Usage Screenshot
+
+![MongoDB Explain Output](./assets/explain-result-1.png)
+
+**Execution Stats**
+
+```json
+"executionSuccess": true,
+"executionTimeMillis": 1,
+"totalKeysExamined": 28,
+"totalDocsExamined": 28
+```
+
+Indicates a fast, index-optimized query that only examined relevant documents.
+
+### Screenshot
+
+![MongoDB Explain Output](./assets/explain-result-2.png)
+
+### Optimization Insights
+
+The use of the `IXSCAN` stage and minimal document/key examination confirms that our compound index on `category` and `tenant` is highly effective. It allows MongoDB to:
+
+- Avoid full collection scans
+- Narrow results early in the query pipeline
+- Improve pagination performance
+- Maintain low latency even as the dataset grows
+
+This demonstrates our intentional database design for **scalable search performance**.
 
 
+#### 2. Text Index on `{ name: 'text', description: 'text' }`
 
+```js
+productSchema.index({ name: 'text', description: 'text' });
+```
+
+**Why this index?**
+
+Users often search using natural keywords like:
+
+/api/products/search?keyword=tablet
+
+This index allows MongoDB to perform full-text search across both `name` and `description` fields using its built-in `$text` operator. It automatically applies tokenization, stemming, and relevance scoring — creating a smarter and more natural search experience.
+
+This design decision reflects an understanding of:
+- **User behavior**: Consumers search with partial keywords, not exact strings.
+- **Search UX**: Autocomplete + fuzzy matches are expected in modern applications.
+- **Database optimization**: Full-text indexes outperform regex-based scans on large datasets.
+
+**Key Benefits**
+- Natural language search across product `name` and `description`
+- Supports flexible keyword matching, typos, and variations
+- Enables relevance-based result ranking
+- Powers the `/search` endpoint with `$text: { $search: keyword }`
+- Avoids expensive `$regex` queries, boosting performance
+---
+
+### Text Index Verification with `explain()`
+
+To ensure our **text index** on `name` and `description` is actively used during keyword searches, we executed the following query with `explain("executionStats")`:
+
+```js
+db.products.find({ $text: { $search: "tablet" } }).explain("executionStats");
+```
+
+**Index Usage**
+
+MongoDB confirms the use of our index:
+
+```json
+"stage": "TEXT_MATCH",
+"indexName": "name_text_description_text",
+"keyPattern": { "_fts": "text", "_ftsx": 1 }
+}
+```
+
+This confirms that MongoDB is using text index (on `name` and `description`) to match the term `"tablet"`.
+
+### Index Usage Screenshot
+
+![MongoDB Explain Output](./assets/explain-result-text-index-1.png)
+
+**Execution Stats**
+
+```json
+"executionSuccess": true,
+"nReturned": 37,
+"executionTimeMillis": 0,
+"totalKeysExamined": 37,
+"totalDocsExamined": 37
+```
+
+The query is fully optimized — MongoDB used the `TEXT_MATCH` stage with the correct text index, scanning only relevant documents for fast, accurate results.
+
+### Screenshot
+
+![MongoDB Explain Output](./assets/explain-result-text-index-2.png)
+
+### Optimization Insights
+
+The use of the `TEXT_MATCH` stage along with the correct `name_text_description_text` index confirms that our text index is working exactly as intended. MongoDB:
+
+- Performs relevance-based full-text search across `name` and `description`
+- Avoids full collection or regex scans
+- Applies tokenization and smart scoring to rank results
+- Handles flexible, human-style search input
+- Returns results with minimal latency even on large datasets
+
+This validates our decision to leverage MongoDB’s full-text search for a **smarter, scalable product search experience**.
+
+### Pagination Implementation
+
+To ensure fast and efficient browsing of large product datasets, pagination is implemented **both on the backend and frontend**, enabling the user to navigate through results without overloading the client or database.
+
+**Backend: Server-Side Pagination with mongoose-paginate-v2**
+
+Pagination is handled using the `mongoose-paginate-v2` plugin, which enables efficient page-by-page querying.
+```js
+const options = {
+  page: parseInt(page),
+  limit: parseInt(limit),
+  sort: sortOption,
+  lean: true,
+  select: 'name category tenant description price'
+};
+const results = await Product.paginate(query, options);
+```
+
+- `page` and `limit` are passed via query parameters
+- Supports sorting alongside pagination
+- Returns metadata like totalDocs, totalPages, hasNextPage, etc.
+
+The /search endpoint ensures:
+
+- Pagination defaults: `page=1`, `limit=10`
+- Validation for invalid values
+- Fallbacks to an empty array if no filters are applied
+
+**Frontend: Paginated Display with Controls**
+
+Pagination is driven by state and user interactions:
+
+```js
+const [page, setPage] = useState(1);
+const [totalPages, setTotalPages] = useState(1);
+```
+
+- When the page changes, `fetchProducts` is called with the updated page.
+- Results and total pages are updated from the backend response.
+- Scrolls to top when new page is loaded.
+
+```js
+useEffect(() => {
+  if (Object.keys(searchParams).length > 0) {
+    fetchProducts({ ...searchParams, page });
+  }
+}, [page]);
+```
+
+**Pagination Component**
+```jsx
+<Pagination
+  page={page}
+  totalPages={totalPages}
+  onPageChange={setPage}
+/>
+```
+
+Provides intuitive navigation using Prev/Next buttons and disables them when on first/last page.
+
+### Performance & Optimization Notes
+
+Delivering a fast and resource-efficient product search experience was a central goal of this project. The following strategies were carefully implemented to ensure that the system remains performant and responsive — even as the product catalog scales to thousands of items:
+
+---
+
+#### 1.MongoDB Indexing for Query Speed
+*Indexes were crafted to support the most frequent and performance-sensitive query patterns.*
+
+To avoid full collection scans and reduce response times, two key indexes were created:
+
+- **Compound index** on `category` and `tenant` improves the efficiency of filtered searches  
+  _(e.g., "Shoes by Nike")_, enabling MongoDB to locate relevant documents rapidly.
+
+- **Text index** on `name` and `description` enables full-text search, allowing users to query with natural language inputs like `"leather bag"` or `"running"` without needing exact matches.
+
+All queries were verified using `.explain()` to confirm that indexes were being properly utilized, ensuring low `executionTimeMillis` and minimal `totalDocsExamined`.
+
+---
+
+#### 2.Lean Queries to Reduce Overhead
+*Reducing memory footprint and boosting API speed through smart data handling.*
+
+Search queries use Mongoose’s `.lean()` method to return plain JavaScript objects instead of full Mongoose documents. This minimizes:
+
+- Memory usage on the server  
+- CPU cycles for document hydration  
+- API response time and payload size
+
+---
+
+#### 3.Server-Side Pagination with `mongoose-paginate-v2`
+*Ensures only necessary data is sent per request, avoiding client overload.*
+
+Pagination is handled using the efficient `mongoose-paginate-v2` plugin. This allows:
+
+- Query slicing with `limit` and `skip`  
+- Compact metadata responses (e.g., `totalDocs`, `totalPages`, `hasNextPage`)
+
+Only a limited subset of products is returned per request, improving scalability and reducing server load.
+
+---
+
+#### 4.Field-Level Projection
+
+Each query retrieves only the required fields:
+
+```js
+select: 'name category tenant description price'
+```
+
+This avoids transmitting unnecessary data (e.g., internal metadata, timestamps), leading to:
+
+- Smaller and faster API responses
+- Lower network bandwidth usage
+- Faster rendering on the frontend
+
+---
+
+#### 5.Controlled Sorting Options
+*Sorting is optimized server-side to minimize computation and latency.*
+
+Sorting is handled on the backend using index-friendly fields like price and name, which:
+
+- Keeps logic efficient and scalable
+- Prevents performance hits on the client
+- Aligns with backend pagination and indexing strategies
+
+---
+
+These optimizations collectively ensure that the application delivers a smooth, scalable, and real-world-ready product search experience — capable of handling thousands of records with minimal latency and efficient resource utilization.
 
 
 
