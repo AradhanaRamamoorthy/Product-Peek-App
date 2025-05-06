@@ -317,7 +317,7 @@ The app uses a **three-layer architecture**:
    React receives the response and displays products using `ProductList`, along with a pagination control using `Pagination.jsx`.
 ---
 
-### Architectural Rationale
+### Architectural Rational
 
 - **Separation of concerns** makes the system easier to test, debug, and scale.
 - Backend logic is optimized for **performance**, using `.select` to reduce data size and MongoDB indexes for search-heavy operations.
