@@ -17,3 +17,14 @@ This project demonstrates backend-first design thinking and focuses on optimizin
 - Server-side pagination
 - Cross-filtering (category affects tenant list)
 - Optimized queries with compound + text indexes
+
+## Tech Stack
+
+**Backend**  
+Node.js · Express.js · MongoDB · Mongoose · mongoose-paginate-v2
+
+**Frontend**  
+React.js · Axios · HTML/CSS
+
+**Utilities**  
+MongoDB Compass (for data + index validation)
