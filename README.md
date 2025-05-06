@@ -37,6 +37,13 @@ To populate the database with sample product data (**1000+ entries**):
 ```bash
 cd backend
 npm run seed
+```
+The seeded dataset may contain duplicate product names to simulate real-world e-commerce scenarios.
+Products are categorized using:
+- category (e.g., Electronics, Kitchen)
+- tenant (i.e., brand or seller)
+These fields are used to power the search and filtering functionality.
+
 
 
 
