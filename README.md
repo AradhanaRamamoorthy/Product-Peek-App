@@ -27,5 +27,17 @@ Node.js · Express.js · MongoDB · Mongoose · mongoose-paginate-v2
 React.js · Axios · HTML/CSS
 
 **Utilities**  
-MongoDB Compass (for data + index validation)
-dotenv for environment variable management
+- MongoDB Compass (for data + index validation)
+- dotenv for environment variable management
+
+Seed the Database
+To populate the database with sample product data (1000+ entries):
+
+cd backend
+npm run seed
+Note:
+The seeded dataset may contain duplicate product names to simulate real-world e-commerce scenarios.
+Products are categorized using:
+category (e.g., Electronics, Kitchen)
+tenant (i.e., brand or seller)
+These fields are used to power the search and filtering functionality.
