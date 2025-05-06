@@ -30,13 +30,42 @@ React.js · Axios · HTML/CSS
 - MongoDB Compass (for data + index validation)
 - dotenv for environment variable management
 
+## Setup & Installation
+
+### Prerequisites
+- Node.js v18+
+- **MongoDB** v8.0+  
+  > Make sure MongoDB is installed and running locally at:  
+  > `mongodb://localhost:27017`  
+  > You can start it using the `mongod` command in your terminal (if installed locally).  
+- npm or yarn
+
+### Clone the Repository
+```bash
+git clone https://github.com/AradhanaRamamoorthy/Product-Peek-App.git
+cd Product-Peek-App
+```
+
+### Install dependencies
+**Backend**
+```bash
+cd backend
+npm install
+```
+
+**Frontend**
+```bash
+cd ../frontend
+npm install
+```
+
 ### Seed the Database
 
 To populate the database with sample product data (**1000+ entries**):
 
 ```bash
 cd backend
-npm run seed
+node seed/seed.js
 ```
 The seeded dataset may contain duplicate product names to simulate real-world e-commerce scenarios.
 Products are categorized using:
@@ -45,6 +74,19 @@ Products are categorized using:
   
 These fields are used to power the search and filtering functionality.
 
+### Run the App
+**Backend**
+```bash
+cd backend
+node app.js
+```
+The backend server will start at: http://localhost:3000
 
+**Frontend (in a seperate terminal)**
+```bash
+cd frontend
+npm start
+```
+The frontend app will run at: http://localhost:3001
 
-
+> **Make sure the backend is running before starting the frontend** to enable full functionality.
