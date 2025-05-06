@@ -64,7 +64,7 @@ npm install
 To populate the database with sample product data (**1000+ entries**):
 
 ```bash
-cd backend
+cd ../backend
 node seed/seed.js
 ```
 The seeded dataset may contain duplicate product names to simulate real-world e-commerce scenarios.
