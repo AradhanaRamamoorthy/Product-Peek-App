@@ -69,7 +69,7 @@ node seed/seed.js
 ```
 The seeded dataset may contain duplicate product names to simulate real-world e-commerce scenarios.
 Products are categorized using:
-- category (e.g., Electronics, Kitchen)
+- category (e.g., Electronics, Home & Kitchen)
 - tenant (i.e., brand or seller)
   
 These fields are used to power the search and filtering functionality.
