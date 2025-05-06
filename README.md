@@ -235,8 +235,24 @@ GET /api/products/suggestions?keyword=tablet
     "Apple Tablet",
     "Sony Tablet"
 ]
+```
+> Suggestions are limited to the top 5 matches and are case-insensitive.
 
+> #### Additional Notes
 
+- If `sort` is not provided in the `/search` endpoint, results are sorted by `createdAt` in descending order by default.
+- If **no filters** (`keyword`, `category`, or `tenant`) are provided to `/search`, the response will be an empty result set:
+  ```json
+  {
+    "docs": [],
+    "totalDocs": 0,
+    "page": 1,
+    "totalPages": 0,
+    "hasNextPage": false,
+    "hasPrevPage": false
+  }
+  ```
+- The `/suggestions` endpoint performs **partial keyword matching** using **case-insensitive regex** 
 
 
 
