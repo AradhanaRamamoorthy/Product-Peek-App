@@ -91,9 +91,9 @@ The frontend app will run at: http://localhost:3001
 
 > **Make sure the backend is running before starting the frontend** to enable full functionality.
 
-## 📡 API Documentation
+## API Documentation
 
-### 🔍 GET `/api/products/search`
+### GET `/api/products/search`
 
 Search products using filters and keyword.
 
@@ -165,3 +165,82 @@ GET /api/products/search?category=Electronics&tenant=Apple&keyword=tablet&sort=p
 }
 ```
 > Each product includes both _id (MongoDB ObjectId) and id (string version) due to Mongoose's lean query behavior.
+
+### GET `/api/products/filters`
+
+Fetch all available categories and tenants.
+
+#### Example Response
+```json
+{
+  "categories": ["Home & Kitchen", "Health & Personal Care", "Clothing"],
+  "tenants": ["Philips", "Sony", "Nike", "Zara"]
+}
+```
+
+### GET `/api/products/filtered-filters`
+
+Fetch categories and tenants based on selected filters (cross-filtering).
+
+### Query Parameters
+
+| Parameter | Type     | Description                     |
+|-----------|----------|---------------------------------|
+| category  | `string` | (Optional) Selected category     |
+| tenant    | `string` | (Optional) Selected tenant       |
+
+#### Example Request
+
+GET /api/products/filtered-filters?category=Electronics
+
+#### Example Response
+```json
+{
+    "categories": [
+        "Electronics"
+    ],
+    "tenants": [
+        "Apple",
+        "Bose",
+        "Dell",
+        "HP",
+        "LG",
+        "Lenovo",
+        "Samsung",
+        "Sony"
+    ]
+}
+```
+
+### GET `/api/products/suggestions`
+
+Autocomplete endpoint for product search.
+
+### Query Parameters
+
+| Parameter | Type     | Required | Description             |
+|-----------|----------|----------|-------------------------|
+| keyword   | `string` | Yes      | Partial search text     |
+
+#### Example Request
+
+GET /api/products/suggestions?keyword=tablet
+
+#### Example Response
+```json
+[
+    "Samsung Tablet",
+    "HP Tablet",
+    "Sony Tablet",
+    "Apple Tablet",
+    "Sony Tablet"
+]
+
+
+
+
+
+
+
+
+
