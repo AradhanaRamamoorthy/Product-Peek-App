@@ -90,3 +90,78 @@ npm start
 The frontend app will run at: http://localhost:3001
 
 > **Make sure the backend is running before starting the frontend** to enable full functionality.
+
+## 📡 API Documentation
+
+### 🔍 GET `/api/products/search`
+
+Search products using filters and keyword.
+
+#### Query Parameters
+
+| Parameter   | Type     | Required | Description |
+|-------------|----------|----------|-------------|
+| `category`  | `string` | No       | Filter by category (e.g., "Electronics") |
+| `tenant`    | `string` | No       | Filter by tenant/brand (e.g., "Sony") |
+| `keyword`   | `string` | No       | Keyword to search in name or description |
+| `sort`      | `string` | No       | Sort order: `price-asc`, `price-desc`, `name-asc`, `name-desc` |
+| `page`      | `number` | No       | Page number (default: 1) |
+| `limit`     | `number` | No       | Items per page (default: 10) |
+
+#### Example Request
+
+GET /api/products/search?category=Electronics&tenant=Apple&keyword=tablet&sort=price-asc&page=1&limit=5
+
+#### Example Response
+```json
+{
+    "docs": [
+        {
+            "_id": "6819ac26c51e0448da0e4840",
+            "name": "Apple Tablet",
+            "category": "Electronics",
+            "tenant": "Apple",
+            "description": "The Apple Tablet delivers top-tier functionality and cutting-edge design for tech enthusiasts.",
+            "price": 301.22,
+            "id": "6819ac26c51e0448da0e4840"
+        },
+        {
+            "_id": "6819ac26c51e0448da0e486a",
+            "name": "Apple Tablet",
+            "category": "Electronics",
+            "tenant": "Apple",
+            "description": "The Apple Tablet delivers top-tier functionality and cutting-edge design for tech enthusiasts.",
+            "price": 331.72,
+            "id": "6819ac26c51e0448da0e486a"
+        },
+        {
+            "_id": "6819ac26c51e0448da0e49e0",
+            "name": "Apple Tablet",
+            "category": "Electronics",
+            "tenant": "Apple",
+            "description": "The Apple Tablet delivers top-tier functionality and cutting-edge design for tech enthusiasts.",
+            "price": 334.41,
+            "id": "6819ac26c51e0448da0e49e0"
+        },
+        {
+            "_id": "6819ac26c51e0448da0e4b10",
+            "name": "Apple Tablet",
+            "category": "Electronics",
+            "tenant": "Apple",
+            "description": "Compact, efficient, and powerful — the Apple Tablet is perfect for daily use.",
+            "price": 1285.36,
+            "id": "6819ac26c51e0448da0e4b10"
+        }
+    ],
+    "totalDocs": 6,
+    "limit": 4,
+    "totalPages": 2,
+    "page": 1,
+    "pagingCounter": 1,
+    "hasPrevPage": false,
+    "hasNextPage": true,
+    "prevPage": null,
+    "nextPage": 2
+}
+```
+> Each product includes both _id (MongoDB ObjectId) and id (string version) due to Mongoose's lean query behavior.
